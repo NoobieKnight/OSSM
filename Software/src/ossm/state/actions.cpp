@@ -2,13 +2,6 @@
 
 #include "ossm/homing/homing.h"
 #include "ossm/menu/menu.h"
-#include "ossm/pages/error.h"
-#include "ossm/pages/pairing.h"
-#include "ossm/pages/hello.h"
-#include "ossm/pages/help.h"
-#include "ossm/pages/preflight.h"
-#include "ossm/pages/update.h"
-#include "ossm/pages/wifi.h"
 #include "ossm/pattern_controls/pattern_controls.h"
 #include "ossm/play_controls/play_controls.h"
 #include "ossm/simple_penetration/simple_penetration.h"
@@ -23,13 +16,6 @@
 #include "services/wm.h"
 #include "utils/random.h"
 
-void ossmDrawHello() {
-    pages::drawHello();
-}
-
-void ossmDrawMenu() {
-    menu::drawMenu();
-}
 
 void ossmStartHoming() {
     homing::clearHoming();
@@ -46,10 +32,6 @@ void ossmStartStreaming() {
 
 void ossmDrawPatternControls() {
     pattern_controls::drawPatternControls();
-}
-
-void ossmDrawPreflight() {
-    pages::drawPreflight();
 }
 
 void ossmResetSettingsStrokeEngine() {
@@ -154,36 +136,7 @@ void ossmEmergencyStop() {
     stepper->disableOutputs();
 }
 
-void ossmDrawHelp() {
-    pages::drawHelp();
-}
-
-void ossmDrawWiFi() {
-    pages::drawWiFi();
-}
-
-void ossmDrawUpdate() {
-    pages::drawUpdate();
-}
-
-void ossmDrawNoUpdate() {
-    pages::drawNoUpdate();
-}
-
-void ossmDrawUpdating() {
-    pages::drawUpdating();
-}
-
-void ossmDrawError() {
-    pages::drawError();
-}
-
 void ossmCheckPairing() {
-    pages::checkPairing();
-}
-
-void ossmDrawPairingSuccess() {
-    pages::drawPairingSuccess();
 }
 
 void ossmSetHomed() {

@@ -56,9 +56,7 @@ static void drawPlayControlsTask(void *pvParameters) {
     unsigned long displayLastUpdated = 0;
 
     auto isInCorrectState = []() {
-        return stateMachine->is("simplePenetration"_s) ||
-               stateMachine->is("simplePenetration.idle"_s) ||
-               stateMachine->is("strokeEngine"_s) ||
+        return stateMachine->is("strokeEngine"_s) ||
                stateMachine->is("strokeEngine.idle"_s) ||
                stateMachine->is("streaming"_s) ||
                stateMachine->is("streaming.idle"_s);
@@ -80,12 +78,6 @@ static void drawPlayControlsTask(void *pvParameters) {
     while (isInCorrectState()) {
         shouldUpdateDisplay = false;
 
-#ifdef AJ_DEVELOPMENT_HARDWARE
-        next.speedKnob = 0;
-#else
-        next.speedKnob =
-            getAnalogAveragePercent(SampleOnPin{Pins::Remote::speedPotPin, 50});
-#endif
         if (abs(next.speedKnob - settings.speedKnob) > 2 &&
             next.speedKnob < settings.speed) {
             ::resetLastSpeedCommandWasFromBLE();

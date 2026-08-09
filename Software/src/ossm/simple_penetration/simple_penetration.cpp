@@ -32,8 +32,7 @@ static void startSimplePenetrationTask(void *pvParameters) {
 
     auto isInCorrectState = []() {
         // Add any states that you want to support here.
-        return stateMachine->is("simplePenetration"_s) ||
-               stateMachine->is("simplePenetration.idle"_s);
+        return false;
     };
 
     double lastSpeed = 0;

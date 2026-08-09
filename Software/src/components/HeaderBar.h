@@ -6,6 +6,7 @@
 #include <freertos/task.h>
 
 #include "services/display.h"
+#include "services/wm.h"
 
 enum class BleStatus {
     DISCONNECTED = 0,

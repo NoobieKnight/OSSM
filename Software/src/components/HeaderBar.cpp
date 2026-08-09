@@ -7,6 +7,7 @@
 #include "constants/LogTags.h"
 #include "services/communication/nimble.h"
 #include "services/led.h"
+#include "services/wm.h"
 
 TaskHandle_t headerBarTaskHandle = nullptr;
 bool showHeaderIcons = true;
@@ -144,8 +145,6 @@ void drawBleIcon() {
     if (showHeaderIcons) {
         if (xSemaphoreTake(displayMutex, 100) == pdTRUE) {
             clearIcons();
-            drawWifiIcon();
-            drawBleIcon();
             refreshIcons();
             xSemaphoreGive(displayMutex);
         }

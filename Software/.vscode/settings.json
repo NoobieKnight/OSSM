@@ -1,5 +1,9 @@
 {
     "files.associations": {
         "string": "cpp"
-    }
+    },
+    "clangd.arguments": [
+        "--compile-commands-dir=/home/martin/dev/OSSM/OSSM/Software/.cache/clangd",
+        "--query-driver=/home/martin/.platformio/packages/toolchain-*/bin/*,/home/martin/.platformio/packages/tool-*/bin/*"
+    ]
 }
