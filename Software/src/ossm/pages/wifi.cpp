@@ -6,9 +6,7 @@
 #include "ossm/Events.h"
 #include "ossm/state/state.h"
 #include "components/HeaderBar.h"
-#include "services/display.h"
 #include "services/wm.h"
-#include "ui.h"
 
 namespace sml = boost::sml;
 using namespace sml;
@@ -16,21 +14,6 @@ using namespace sml;
 namespace pages {
 
 void drawWiFi() {
-    if (xSemaphoreTake(displayMutex, 200) == pdTRUE) {
-        bool isConnected = WiFiClass::status() == WL_CONNECTED;
-
-        if (!isConnected) {
-            showHeaderIcons = false;
-            ui::drawTextPage(display.getU8g2(),
-                             ui::pages::wifiDisconnectedPage);
-        } else {
-            showHeaderIcons = true;
-            ui::drawTextPage(display.getU8g2(),
-                             ui::pages::wifiConnectedPage);
-        }
-        refreshPage(true, true);
-        xSemaphoreGive(displayMutex);
-    }
 
     // Only start portal if not already connected
     if (WiFiClass::status() != WL_CONNECTED) {

@@ -29,16 +29,15 @@ static void startStreamingTask(void *pvParameters) {
 
     auto isInCorrectState = []() {
         return stateMachine->is("streaming"_s) ||
-               stateMachine->is("streaming.preflight"_s) ||
-               stateMachine->is("streaming.idle"_s);
+               stateMachine->is("streaming.active"_s);
     };
 
     auto best = std::chrono::steady_clock::now();
     PositionTime lastPositionTime;
-    
+
     // Reset the queue to clear any existing commands
     targetQueue = {};
-    
+
     // Motion state
     int16_t currentPosition = 0;
     int16_t targetPosition = 0;
@@ -68,9 +67,9 @@ static void startStreamingTask(void *pvParameters) {
             continue;
         }
         targetQueue.pop();
-        
+
         float timeSeconds = targetPositionTime.inTime / 1000.0f;
-        
+
         // settime is when the message was received. If we trust the source we can reduce perceived lag by creating a buffer.
         if (USE_LATENCY_COMPENSATION){
             int16_t mincomp =  min(int(settings.buffer * 2),int(lastPositionTime.inTime));
@@ -143,7 +142,7 @@ static void startStreamingTask(void *pvParameters) {
                 stepper->moveTo(targetPosition, false);
 
                 ESP_LOGI("Streaming", "P(%d): %d -> %d = %d, T: %.3f, S: %d, A: %d, Q: %d",
-                        targetPositionTime.position, currentPosition, targetPosition, distance, 
+                        targetPositionTime.position, currentPosition, targetPosition, distance,
                         timeSeconds, requiredSpeed, requiredAccel, targetQueue.size());
             }
         } else {

@@ -5,7 +5,6 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#include "services/display.h"
 #include "services/wm.h"
 
 enum class BleStatus {
@@ -23,25 +22,13 @@ enum class WifiStatus {
     ERROR = 3
 };
 
-constexpr uint16_t GLYPH_WIFI_OFF = 0xe218;
-constexpr uint16_t GLYPH_WIFI_CONNECTING = 0xe219;
-constexpr uint16_t GLYPH_WIFI_CONNECTED = 0xe21a;
-constexpr uint16_t GLYPH_WIFI_ERROR = 0xe21b;
-constexpr uint16_t GLYPH_BLE_CONNECTED = 0xe00b;
-constexpr uint16_t GLYPH_BLE_SMALL = 0xe0b0;
-constexpr uint16_t GLYPH_EXCLAMATION = 0xe0b3;
 
-bool shouldDrawWifiIcon();
-bool shouldDrawBleIcon();
 WifiStatus getWifiStatus();
 BleStatus getBleStatus();
-void drawWifiIcon();
-void drawBleIcon();
 
 [[noreturn]] void headerBarTask(void* pvParameters);
 void initHeaderBar();
 
 extern TaskHandle_t headerBarTaskHandle;
-extern bool showHeaderIcons;
 
 #endif  // OSSM_HEADERBAR_H

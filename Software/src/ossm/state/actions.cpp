@@ -1,17 +1,12 @@
 #include "actions.h"
 
 #include "ossm/homing/homing.h"
-#include "ossm/menu/menu.h"
-#include "ossm/pattern_controls/pattern_controls.h"
-#include "ossm/play_controls/play_controls.h"
-#include "ossm/simple_penetration/simple_penetration.h"
 #include "ossm/streaming/streaming.h"
 #include "ossm/state/calibration.h"
 #include "ossm/state/session.h"
 #include "ossm/state/settings.h"
 #include "ossm/stroke_engine/stroke_engine.h"
 #include "services/communication/mqtt.h"
-#include "services/encoder.h"
 #include "services/stepper.h"
 #include "services/wm.h"
 #include "utils/random.h"
@@ -22,16 +17,8 @@ void ossmStartHoming() {
     homing::startHoming();
 }
 
-void ossmDrawPlayControls() {
-    play_controls::drawPlayControls();
-}
-
 void ossmStartStreaming() {
     streaming::startStreaming();
-}
-
-void ossmDrawPatternControls() {
-    pattern_controls::drawPatternControls();
 }
 
 void ossmResetSettingsStrokeEngine() {
@@ -43,32 +30,6 @@ void ossmResetSettingsStrokeEngine() {
     settings.depth = 10;
     settings.sensation = 50;
     session.playControl = PlayControls::DEPTH;
-
-    // Prepare the encoder
-    encoder.setBoundaries(0, 100, false);
-    encoder.setAcceleration(10);
-    encoder.setEncoderValue(settings.depth);
-}
-
-void ossmResetSettingsSimplePen() {
-    sessionId = uuid();
-
-    settings.speed = 0;
-    settings.speedBLE = std::nullopt;
-    settings.stroke = 0;
-    settings.depth = 50;
-    settings.sensation = 50;
-    session.playControl = PlayControls::STROKE;
-
-    // Prepare the encoder
-    encoder.setBoundaries(0, 100, false);
-    encoder.setAcceleration(10);
-    encoder.setEncoderValue(settings.stroke);
-
-    // record session start time rounded to the nearest second
-    session.startTime = millis();
-    session.strokeCount = 0;
-    session.distanceMeters = 0;
 }
 
 void ossmResetSettingsStreaming() {
@@ -81,50 +42,6 @@ void ossmResetSettingsStreaming() {
     settings.sensation = 50;
     settings.buffer = 100;
     session.playControl = PlayControls::DEPTH;
-
-    // Prepare the encoder
-    encoder.setBoundaries(0, 100, false);
-    encoder.setAcceleration(10);
-    encoder.setEncoderValue(settings.depth);
-}
-
-void ossmIncrementControlStrokeEngine() {
-    session.playControl = static_cast<PlayControls>((session.playControl + 1) % 3);
-    switch (session.playControl) {
-        case PlayControls::STROKE:
-            encoder.setEncoderValue(settings.stroke);
-            break;
-        case PlayControls::DEPTH:
-            encoder.setEncoderValue(settings.depth);
-            break;
-        case PlayControls::SENSATION:
-            encoder.setEncoderValue(settings.sensation);
-            break;
-        default:
-            break;
-    }
-}
-
-void ossmIncrementControlStreaming() {
-    session.playControl = static_cast<PlayControls>((session.playControl + 1) % 4);
-    switch (session.playControl) {
-        case PlayControls::STROKE:
-            encoder.setEncoderValue(settings.stroke);
-            break;
-        case PlayControls::DEPTH:
-            encoder.setEncoderValue(settings.depth);
-            break;
-        case PlayControls::SENSATION:
-            encoder.setEncoderValue(settings.sensation);
-            break;
-        case PlayControls::BUFFER:
-            encoder.setEncoderValue(settings.buffer);
-            break;
-    }
-};
-
-void ossmStartSimplePenetration() {
-    simple_penetration::startSimplePenetration();
 }
 
 void ossmStartStrokeEngine() {

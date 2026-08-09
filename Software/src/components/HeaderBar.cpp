@@ -10,14 +10,6 @@
 #include "services/wm.h"
 
 TaskHandle_t headerBarTaskHandle = nullptr;
-bool showHeaderIcons = true;
-
-static WifiStatus lastWifiStatus = WifiStatus::DISCONNECTED;
-static BleStatus lastBleStatus = BleStatus::DISCONNECTED;
-
-static const int16_t WIFI_ICON_X = 104;
-static const int16_t BLE_ICON_X = 118;
-static const int16_t ICON_Y = 8;
 
 WifiStatus getWifiStatus() {
     wl_status_t wifiStatus = WiFiClass::status();
@@ -32,41 +24,6 @@ WifiStatus getWifiStatus() {
         case WL_DISCONNECTED:
         default:
             return WifiStatus::DISCONNECTED;
-    }
-}
-
-bool shouldDrawWifiIcon() {
-    WifiStatus currentStatus = getWifiStatus();
-    if (currentStatus != lastWifiStatus) {
-        lastWifiStatus = currentStatus;
-        return true;
-    }
-    return false;
-}
-
-void drawWifiIcon() {
-    display.setFont(u8g2_font_siji_t_6x10);
-
-    switch (getWifiStatus()) {
-        case WifiStatus::CONNECTED:
-            display.drawGlyph(WIFI_ICON_X, ICON_Y, GLYPH_WIFI_CONNECTED);
-            break;
-        case WifiStatus::CONNECTING:
-            display.drawGlyph(WIFI_ICON_X, ICON_Y, GLYPH_WIFI_CONNECTING);
-            break;
-        case WifiStatus::ERROR: {
-            display.drawGlyph(WIFI_ICON_X, ICON_Y, GLYPH_WIFI_OFF);
-            constexpr int16_t ex = WIFI_ICON_X + 11;
-            display.drawPixel(ex, ICON_Y - 5);
-            display.drawPixel(ex, ICON_Y - 4);
-            display.drawPixel(ex, ICON_Y - 3);
-            display.drawPixel(ex, ICON_Y - 1);
-            break;
-        }
-        case WifiStatus::DISCONNECTED:
-        default:
-            display.drawGlyph(WIFI_ICON_X, ICON_Y, GLYPH_WIFI_OFF);
-            break;
     }
 }
 
@@ -90,104 +47,15 @@ BleStatus getBleStatus() {
     return BleStatus::DISCONNECTED;
 }
 
-bool shouldDrawBleIcon() {
-    BleStatus currentStatus = getBleStatus();
-    if (currentStatus != lastBleStatus) {
-        lastBleStatus = currentStatus;
-        return true;
-    }
-    return false;
-}
-
-void drawBleIcon() {
-    display.setFont(u8g2_font_siji_t_6x10);
-
-    static constexpr int16_t BLE_SUB_X = BLE_ICON_X - 3;
-    static constexpr int16_t BLE_IND_X = BLE_SUB_X + 7;
-    static constexpr int16_t BLE_Y = ICON_Y - 1;
-    static constexpr int16_t BLE_SUB_Y = ICON_Y - 1;
-
-    BleStatus status = getBleStatus();
-    switch (status) {
-        case BleStatus::CONNECTED:
-            display.drawGlyph(BLE_ICON_X, BLE_Y, GLYPH_BLE_SMALL);
-            break;
-        case BleStatus::DISCONNECTED: {
-            constexpr int16_t cx = BLE_ICON_X + 4;
-            constexpr int16_t cy = ICON_Y - 5;
-            display.drawCircle(cx, cy, 3);
-            break;
-        }
-        case BleStatus::CONNECTING:
-        case BleStatus::ADVERTISING:
-            display.drawGlyph(BLE_SUB_X, BLE_Y, GLYPH_BLE_SMALL);
-            display.drawPixel(BLE_IND_X, BLE_SUB_Y);
-            display.drawPixel(BLE_IND_X + 2, BLE_SUB_Y);
-            display.drawPixel(BLE_IND_X + 4, BLE_SUB_Y);
-            break;
-        case BleStatus::ERROR: {
-            display.drawGlyph(BLE_SUB_X, BLE_Y, GLYPH_BLE_SMALL);
-            constexpr int16_t ex = BLE_ICON_X + 7;
-            display.drawPixel(ex, ICON_Y - 7);
-            display.drawPixel(ex, ICON_Y - 6);
-            display.drawPixel(ex, ICON_Y - 5);
-            display.drawPixel(ex, ICON_Y - 3);
-            break;
-        }
-    }
-}
-
 [[noreturn]] void headerBarTask(void* pvParameters) {
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     ESP_LOGI(HEADERBAR_TAG, "Header bar task started");
 
-    if (showHeaderIcons) {
-        if (xSemaphoreTake(displayMutex, 100) == pdTRUE) {
-            clearIcons();
-            refreshIcons();
-            xSemaphoreGive(displayMutex);
-        }
-    }
-
-    bool lastShowState = showHeaderIcons;
 
     while (true) {
-        bool stateChanged = (showHeaderIcons != lastShowState);
-        lastShowState = showHeaderIcons;
-
-        if (!showHeaderIcons) {
-            if (stateChanged) {
-                if (xSemaphoreTake(displayMutex, 100) == pdTRUE) {
-                    clearIcons();
-                    refreshIcons();
-                    xSemaphoreGive(displayMutex);
-                }
-            }
-            updateLEDForMachineStatus();
-            vTaskDelay(100 / portTICK_PERIOD_MS);
-            continue;
-        }
-
-        bool wifiChanged = shouldDrawWifiIcon() || stateChanged;
-        bool bleChanged = shouldDrawBleIcon() || stateChanged;
 
         updateLEDForMachineStatus();
-
-        if (!wifiChanged && !bleChanged) {
-            vTaskDelay(100 / portTICK_PERIOD_MS);
-            continue;
-        }
-
-        if (xSemaphoreTake(displayMutex, 100) == pdTRUE) {
-            clearIcons();
-            drawWifiIcon();
-            drawBleIcon();
-            refreshIcons();
-            xSemaphoreGive(displayMutex);
-        } else {
-            ESP_LOGW(HEADERBAR_TAG, "Failed to acquire display mutex");
-        }
 
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }

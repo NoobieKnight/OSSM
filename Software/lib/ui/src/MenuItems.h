@@ -4,11 +4,9 @@
 #include "Strings.h"
 
 enum Menu {
-    SimplePenetration,
     StrokeEngine,
     Streaming,
     Pairing,
-    UpdateOSSM,
     WiFiSetup,
     Help,
     Restart,
@@ -16,9 +14,9 @@ enum Menu {
 };
 
 static const char* menuStrings[Menu::NUM_OPTIONS] = {
-    ui::strings::simplePenetration, ui::strings::strokeEngine,
+    ui::strings::strokeEngine,
     ui::strings::streaming,         ui::strings::pairing,
-    ui::strings::update,            ui::strings::wifiSetup,
+    ui::strings::wifiSetup,
     ui::strings::helpTitle,         ui::strings::restart,
 };
 

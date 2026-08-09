@@ -43,7 +43,7 @@ class OSSM {
     int getSpeed() { return settings.speed; }
 
     // Menu option accessor (deprecated - use menuState.currentOption)
-    Menu menuOption = Menu::SimplePenetration;
+    Menu menuOption = Menu::StrokeEngine;
 
     // Session accessors (deprecated - use session.* globals)
     unsigned long sessionStartTime = 0;

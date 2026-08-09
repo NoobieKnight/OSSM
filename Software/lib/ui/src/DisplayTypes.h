@@ -36,44 +36,6 @@ struct MenuData {
 enum class WifiStatus { DISCONNECTED, CONNECTING, CONNECTED, ERROR };
 enum class BleStatus { DISCONNECTED, CONNECTING, CONNECTED, ADVERTISING, ERROR };
 
-struct HeaderIconsData {
-    WifiStatus wifi;
-    BleStatus ble;
-};
-
-struct PreflightData {
-    const char* title;
-    float speedPercentage;
-    const char* speedLabel;
-    const char* warning;
-};
-
-struct HelloFrame {
-    int heights[4];
-};
-
-struct LogoData {
-    const char* title;
-    const uint8_t* bitmap;
-    int w;
-    int h;
-    int x;
-    int y;
-    const char* version = nullptr;
-};
-
-struct TextPage {
-    const char* title      = nullptr;
-    const char* subtitle   = nullptr;
-    const char* body       = nullptr;
-    const char* bottomText = nullptr;
-    const char* qrUrl      = nullptr;
-    uint8_t qrVersion      = 3;
-    int qrScale            = 2;
-    bool centerBody        = false;
-    int scrollPercent      = -1;
-};
-
 inline int scrollPercent(int index, int count) {
     return (count > 1) ? (100 * index / (count - 1)) : 0;
 }

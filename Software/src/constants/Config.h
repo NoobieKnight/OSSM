@@ -1,8 +1,6 @@
 #ifndef OSSM_SOFTWARE_CONFIG_H
 #define OSSM_SOFTWARE_CONFIG_H
 
-#include <U8g2lib.h>
-
 /**
     Default Config for OSSM - Reference board users should tweak UserConfig to
    match their personal build.
@@ -35,12 +33,12 @@ namespace Config {
 
         namespace Operator {
             // Define user-defined literal for unsigned integer values
-            constexpr long long operator"" _mm(unsigned long long x) {
+            constexpr long long operator""_mm(unsigned long long x) {
                 return x * stepsPerMM;
             }
 
             // Define user-defined literal for floating-point values
-            constexpr long double operator"" _mm(long double x) {
+            constexpr long double operator""_mm(long double x) {
                 return x * stepsPerMM;
             }
         }
@@ -79,16 +77,6 @@ namespace Config {
         // there is NO security other than knowing this name, make this unique
         // to avoid collisions with other users
         constexpr char *ossmId = nullptr;
-    }
-
-    /**
-        Font Config. These must be the "f" variants of the font to support other
-       languages.
-*/
-    namespace Font {
-        static auto bold = u8g2_font_helvB08_tf;
-        static auto base = u8g2_font_helvR08_tf;
-        static auto small = u8g2_font_6x10_tf;
     }
 
     /**

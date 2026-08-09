@@ -26,7 +26,6 @@ struct OSSMStateMachine {
             "homing.backward"_s + error = "error"_s,
             "homing.backward"_s + done[(isStrokeTooShort)] = "error"_s,
             "homing.backward"_s + done[isFirstHomed] / setHomed = "menu"_s,
-            "homing.backward"_s + done[(isOption(Menu::SimplePenetration))] / setHomed = "simplePenetration"_s,
             "homing.backward"_s + done[(isOption(Menu::StrokeEngine))] / setHomed = "strokeEngine"_s,
             "homing.backward"_s + done[(isOption(Menu::Streaming))] / setHomed = "streaming"_s,
 
@@ -39,41 +38,32 @@ struct OSSMStateMachine {
             "menu.idle"_s + buttonPress[(isOption(Menu::Restart))] = "restart"_s,
 
             "strokeEngine"_s [isNotHomed] = "homing"_s,
-            "strokeEngine"_s [isPreflightSafe] / (resetSettingsStrokeEngine, drawPlayControls, startStrokeEngine) = "strokeEngine.idle"_s,
-            "strokeEngine"_s = "strokeEngine.preflight"_s,
-            "strokeEngine.preflight"_s + done / (resetSettingsStrokeEngine, drawPlayControls, startStrokeEngine) = "strokeEngine.idle"_s,
-            "strokeEngine.preflight"_s + longPress / (emergencyStop, setNotHomed) = "menu"_s,
-            "strokeEngine.idle"_s + buttonPress / incrementControlStrokeEngine = "strokeEngine.idle"_s,
-            "strokeEngine.idle"_s + doublePress / drawPatternControls = "strokeEngine.pattern"_s,
-            "strokeEngine.pattern"_s + buttonPress / drawPlayControls = "strokeEngine.idle"_s,
-            "strokeEngine.pattern"_s + doublePress / drawPlayControls = "strokeEngine.idle"_s,
-            "strokeEngine.pattern"_s + longPress / (emergencyStop, setNotHomed) = "menu"_s,
-            "strokeEngine.idle"_s + longPress / (emergencyStop, setNotHomed) = "menu"_s,
-            "strokeEngine.idle"_s + event<ReturnToMenu> / emergencyStop = "menu"_s,
-            "strokeEngine.pattern"_s + event<ReturnToMenu> / emergencyStop = "menu"_s,
-            "strokeEngine.preflight"_s + event<ReturnToMenu> = "menu"_s,
+            "strokeEngine"_s / (resetSettingsStrokeEngine, startStrokeEngine) = "strokeEngine.active"_s,
+            // Exit
+            "strokeEngine.active"_s + longPress / (emergencyStop, setNotHomed) = "menu"_s,
+            "strokeEngine.active"_s + event<ReturnToMenu> / emergencyStop = "menu"_s,
 
             "streaming"_s [isNotHomed] = "homing"_s,
-            "streaming"_s [isPreflightSafe] / (resetSettingsStreaming, drawPlayControls, startStreaming) = "streaming.idle"_s,
-            "streaming"_s = "streaming.preflight"_s,
-            "streaming.preflight"_s + done / (resetSettingsStreaming, drawPlayControls, startStreaming) = "streaming.idle"_s,
-            "streaming.preflight"_s + longPress = "menu"_s,
-            "streaming.idle"_s + longPress / (emergencyStop, setNotHomed) = "menu"_s,
-            "streaming.idle"_s + event<ReturnToMenu> / emergencyStop = "menu"_s,
-            "streaming.idle"_s + buttonPress / incrementControlStreaming = "streaming.idle"_s,
+            "streaming"_s / (resetSettingsStreaming, startStreaming) = "streaming.active"_s,
+            // Exit
+            "streaming.active"_s + longPress / (emergencyStop, setNotHomed) = "menu"_s,
+            "streaming.active"_s + event<ReturnToMenu> / emergencyStop = "menu"_s,
 
             "pairing"_s / checkPairing = "pairing.idle"_s,
             "pairing.idle"_s + done = "pairing.success"_s,
+            // Exit
             "pairing.idle"_s + buttonPress = "menu"_s,
             "pairing.idle"_s + longPress = "menu"_s,
             "pairing.idle"_s + error = "menu"_s,
 
             "pairing.success"_s = "pairing.success.idle"_s,
+            // Exit
             "pairing.success.idle"_s + buttonPress = "menu"_s,
             "pairing.success.idle"_s + longPress = "menu"_s,
 
             "pairing.wifi"_s = "pairing.wifi.idle"_s,
             "pairing.wifi.idle"_s + done = "pairing"_s,
+            // Exit
             "pairing.wifi.idle"_s + buttonPress = "menu"_s,
             "pairing.wifi.idle"_s + longPress = "menu"_s,
 

@@ -8,32 +8,18 @@
 // Forward declarations for guard implementations (defined in guards.cpp)
 bool ossmIsStrokeTooShort();
 bool ossmIsNotHomed();
-bool ossmIsPreflightSafe();
 Menu ossmGetMenuOption();
 
 namespace guards {
 
     // Guard for checking if stroke is too short
     constexpr auto isStrokeTooShort = []() {
-#ifdef AJ_DEVELOPMENT_HARDWARE
-        return false;
-#else
         return ossmIsStrokeTooShort();
-#endif
     };
 
     // Guard for checking menu option - returns a lambda that checks if current option matches
     constexpr auto isOption = [](Menu option) {
         return [option]() { return ossmGetMenuOption() == option; };
-    };
-
-    // Guard for checking if preflight is safe
-    constexpr auto isPreflightSafe = []() {
-#ifdef AJ_DEVELOPMENT_HARDWARE
-        return true;
-#else
-        return ossmIsPreflightSafe();
-#endif
     };
 
     // Guard for checking if this is the first homing

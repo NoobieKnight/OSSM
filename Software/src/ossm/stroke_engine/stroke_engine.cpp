@@ -61,8 +61,7 @@ static void startStrokeEngineTask(void *pvParameters) {
     auto isInCorrectState = []() {
         // Add any states that you want to support here.
         return stateMachine->is("strokeEngine"_s) ||
-               stateMachine->is("strokeEngine.idle"_s) ||
-               stateMachine->is("strokeEngine.pattern"_s);
+               stateMachine->is("strokeEngine.active"_s);
     };
 
     while (isInCorrectState()) {
@@ -158,8 +157,7 @@ static void startStrokeEngineTask(void *pvParameters) {
 static void publishStateTask(void *pvParameters) {
     auto isInCorrectState = []() {
         return stateMachine->is("strokeEngine"_s) ||
-               stateMachine->is("strokeEngine.idle"_s) ||
-               stateMachine->is("strokeEngine.pattern"_s);
+               stateMachine->is("strokeEngine.active"_s);
     };
 
     const TickType_t publishInterval = pdMS_TO_TICKS(

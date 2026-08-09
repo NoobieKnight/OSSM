@@ -16,13 +16,6 @@ bool ossmIsNotHomed() {
     return calibration.isHomed == false;
 }
 
-bool ossmIsPreflightSafe() {
-    float potReading =
-        getAnalogAveragePercent({Pins::Remote::speedPotPin, 50});
-    return guard_logic::isPreflightSafeLogic(
-        potReading, Config::Advanced::commandDeadZonePercentage);
-}
-
 Menu ossmGetMenuOption() {
     return menuState.currentOption;
 }

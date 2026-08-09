@@ -3,15 +3,9 @@
 
 // Forward declarations for action implementations (defined in actions.cpp)
 void ossmStartHoming();
-void ossmDrawPlayControls();
 void ossmStartStreaming();
-void ossmDrawPatternControls();
 void ossmResetSettingsStrokeEngine();
-void ossmResetSettingsSimplePen();
 void ossmResetSettingsStreaming();
-void ossmIncrementControlStrokeEngine();
-void ossmIncrementControlStreaming();
-void ossmStartSimplePenetration();
 void ossmStartStrokeEngine();
 void ossmEmergencyStop();
 void ossmSetHomed();
@@ -24,23 +18,11 @@ namespace actions {
 
     constexpr auto startHoming = []() { ossmStartHoming(); };
 
-    constexpr auto drawPlayControls = []() { ossmDrawPlayControls(); };
-
     constexpr auto startStreaming = []() { ossmStartStreaming(); };
-
-    constexpr auto drawPatternControls = []() { ossmDrawPatternControls(); };
 
     constexpr auto resetSettingsStrokeEngine = []() { ossmResetSettingsStrokeEngine(); };
 
-    constexpr auto resetSettingsSimplePen = []() { ossmResetSettingsSimplePen(); };
-
     constexpr auto resetSettingsStreaming = []() { ossmResetSettingsStreaming(); };
-
-    constexpr auto incrementControlStrokeEngine = []() { ossmIncrementControlStrokeEngine(); };
-
-    constexpr auto incrementControlStreaming = []() { ossmIncrementControlStreaming(); };
-
-    constexpr auto startSimplePenetration = []() { ossmStartSimplePenetration(); };
 
     constexpr auto startStrokeEngine = []() { ossmStartStrokeEngine(); };
 

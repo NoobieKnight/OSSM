@@ -9,7 +9,6 @@
 #include "ossm/state/state.h"
 #include "services/communication/mqtt.h"
 #include "services/communication/queue.h"
-#include "services/encoder.h"
 #include "services/stepper.h"
 
 namespace sml = boost::sml;
@@ -48,12 +47,6 @@ void OSSM::ble_click(String commandString) {
                 stateMachine->process_event(ButtonPress{});
             }
             break;
-        case Commands::goToSimplePenetration:
-            menuState.currentOption = Menu::SimplePenetration;
-            if (stateMachine != nullptr) {
-                stateMachine->process_event(ButtonPress{});
-            }
-            break;
         case Commands::goToStreaming:
             menuState.currentOption = Menu::Streaming;
             if (stateMachine != nullptr) {
@@ -66,31 +59,24 @@ void OSSM::ble_click(String commandString) {
             }
             break;
         case Commands::setSpeed:
-            // BLE devices can be trusted to send true value
-            // and can bypass potentiomer smoothing logic
             bleState.lastSpeedCommandWasFromBLE = true;
-            // Use speed knob config to determine how to handle BLE speed
-            // command
             settings.speedBLE = command.value;
+            settings.speed = command.value;
             break;
         case Commands::setStroke:
             session.playControl = PlayControls::STROKE;
-            encoder.setEncoderValue(command.value);
             settings.stroke = command.value;
             break;
         case Commands::setDepth:
             session.playControl = PlayControls::DEPTH;
-            encoder.setEncoderValue(command.value);
             settings.depth = command.value;
             break;
         case Commands::setSensation:
             session.playControl = PlayControls::SENSATION;
-            encoder.setEncoderValue(command.value);
             settings.sensation = command.value;
             break;
         case Commands::setBuffer:
             session.playControl = PlayControls::BUFFER;
-            encoder.setEncoderValue(command.value);
             settings.buffer = command.value;
             break;
         case Commands::setPattern:

@@ -17,7 +17,6 @@ namespace Prefix {
 enum class Commands {
     // GO TO
     goToStrokeEngine,
-    goToSimplePenetration,
     goToStreaming,
     goToMenu,
 
@@ -139,8 +138,6 @@ inline WiFiCredentials parseWiFiCommand(const String& str) {
 inline CommandValue commandFromString(const String& str) {
     if (str.startsWith("go:")) {
         if (str == "go:strokeEngine") return {Commands::goToStrokeEngine, 0, 0};
-        if (str == "go:simplePenetration")
-            return {Commands::goToSimplePenetration, 0, 0};
         if (str == "go:streaming") return {Commands::goToStreaming, 0, 0};
         if (str == "go:menu") return {Commands::goToMenu, 0, 0};
         return {Commands::goToMenu, 0, 0};  // Default

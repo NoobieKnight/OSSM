@@ -7,7 +7,7 @@
  * Menu state - tracks current menu selection
  */
 struct MenuState {
-    Menu currentOption = Menu::SimplePenetration;
+    Menu currentOption = Menu::StrokeEngine;  // Default to Stroke Engine
 };
 
 extern MenuState menuState;

@@ -21,7 +21,6 @@ struct SettingPercents {
     float depth;
     float buffer;
     StrokePatterns pattern;
-    float speedKnob;
     std::optional<float> speedBLE = std::nullopt;
 };
 

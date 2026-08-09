@@ -8,8 +8,6 @@
 #include "services/board.h"
 #include "services/communication/mqtt.h"
 #include "services/communication/nimble.h"
-#include "services/display.h"
-#include "services/encoder.h"
 #include "services/led.h"
 #include "services/stepper.h"
 #include "services/wm.h"
@@ -51,10 +49,7 @@ void __attribute__((weak)) setup() {
 
     ESP_LOGD("MAIN", "Starting OSSM");
 
-    // Display
-    initDisplay();
-
-    // Initialize header bar task
+    // Initialize header bar task (Modified only LED )
     initHeaderBar();
 
     // Create OSSM instance for backward compatibility (BLE command handling)

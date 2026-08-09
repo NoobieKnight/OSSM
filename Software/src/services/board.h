@@ -5,7 +5,6 @@
 #include <NimBLEDevice.h>
 
 #include "constants/Pins.h"
-#include "services/encoder.h"
 #include "services/led.h"
 #include "services/stepper.h"
 
