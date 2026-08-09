@@ -30,7 +30,7 @@ void clearHoming() {
     // Set acceleration and deceleration in steps/s^2
     stepper->setAcceleration(1000_mm);
     // Set speed in steps/s
-    stepper->setSpeedInHz(25_mm);
+    stepper->setSpeedInHz(Config::Driver::homingSpeed);
 
     // Clear the stored values.
     calibration.measuredStrokeSteps = 0;
@@ -58,7 +58,7 @@ static void startHomingTask(void *pvParameters) {
     int16_t sign = stateMachine->is("homing.backward"_s) ? 1 : -1;
 
     int32_t targetPositionInSteps =
-        round(sign * Config::Driver::maxStrokeSteps);
+        round(sign * (50_mm + Config::Driver::maxStrokeSteps));
 
     ESP_LOGD("Homing", "Target position in steps: %d", targetPositionInSteps);
     stepper->moveTo(targetPositionInSteps, false);
@@ -80,7 +80,7 @@ static void startHomingTask(void *pvParameters) {
         // 'portTICK_PERIOD_MS' is the number of milliseconds per tick.
         uint32_t msPassed = xTicksPassed * portTICK_PERIOD_MS;
 
-        if (homing_logic::isHomingTimedOut(msPassed, 40000)) {
+        if (homing_logic::isHomingTimedOut(msPassed, (Config::Driver::maxStrokeSteps / Config::Driver::homingSpeed + 5) * 1000)) {
             ESP_LOGE("Homing", "Homing took too long. Check power and restart");
             errorState.message = ui::strings::homingTookTooLong;
 
@@ -93,7 +93,7 @@ static void startHomingTask(void *pvParameters) {
 
         // measure the current analog value.
         float current = getAnalogAveragePercent(
-                            SampleOnPin{Pins::Driver::currentSensorPin, 50}) -
+                            SampleOnPin{Pins::Driver::currentSensorPin, Config::Driver::sensorlessCurrentSamples}) -
                         calibration.currentSensorOffset;
 
         ESP_LOGV("Homing", "Current: %f", current);
@@ -101,7 +101,7 @@ static void startHomingTask(void *pvParameters) {
             current, 0, Config::Driver::sensorlessCurrentLimit);
 
         if (!isCurrentOverLimit) {
-            vTaskDelay(10);  // Increased from 1ms to 10ms to reduce CPU load
+            vTaskDelay(5);  // Increased from 1ms to 10ms to reduce CPU load
             continue;
         }
 

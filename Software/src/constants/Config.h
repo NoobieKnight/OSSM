@@ -18,7 +18,7 @@ namespace Config {
         // Max speed of the device
         constexpr float maxRPM = 1500.0f;
         // Number of teeth the pulley that is attached to the servo/stepper shaft has.
-        constexpr float pulleyToothCount = 20.0f;
+        constexpr float pulleyToothCount = 30.0f;
         // Set to your belt pitch (Distance between two teeth on the belt) (E.g.
         // GT2 belt has 2mm tooth pitch)
         constexpr float beltPitchMm = 2.0f;
@@ -32,9 +32,6 @@ namespace Config {
         // N.b. the iHSV57 has a table on the side for setting the DIP switches
         // to your preference.
         constexpr float stepsPerMM = motorStepPerRevolution / (pulleyToothCount * beltPitchMm);
-        // This is the measured current that use to infer when the device has
-        // reached the end of its stroke. during "Homing".
-        constexpr float sensorlessCurrentLimit = 6.0f;
 
         namespace Operator {
             // Define user-defined literal for unsigned integer values
@@ -56,14 +53,21 @@ namespace Config {
         // belt attachments subtract the linear block holder length (75mm on
         // OSSM) Recommended to also subtract e.g. 20mm to keep the backstop
         // well away from the device.
-        constexpr float maxStrokeSteps = 500.0_mm;
+        constexpr float maxStrokeSteps = 340.0_mm;
 
         // If the stroke length is less than this value, then the stroke is
         // likely the result of a poor homing.
-        constexpr float minStrokeLengthMm = 50.0_mm;
+        constexpr float minStrokeLengthMm = 100.0_mm;
 
-        // Applied offset after homing process.
-        constexpr float homingOffsetMn = 10_mm;
+        // Applied offset after homing process. Defines limits
+        constexpr float homingOffsetMn = 20_mm;
+        // Speed when homing
+        constexpr float homingSpeed = 10_mm;
+        // Nbr of samples when doing sensorless Homing
+        constexpr int sensorlessCurrentSamples = 20;
+        // This is the measured current that use to infer when the device has
+        // reached the end of its stroke. during "Homing".
+        constexpr float sensorlessCurrentLimit = 1.0f;
     }
 
     /**

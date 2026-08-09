@@ -66,14 +66,16 @@ static void startStrokeEngineTask(void *pvParameters) {
     };
 
     while (isInCorrectState()) {
-        if (isChangeSignificant(lastSetting.speed, settings.speed) ||
-            wasLastSpeedCommandFromBLE()) {
-            // Speed is float, so give a little wiggle room here to assume 0
-            if (settings.speed < 0.1f) {
-                Stroker.stopMotion();
-            } else if (Stroker.getState() == READY) {
-                Stroker.startPattern();
-            }
+
+        // Speed is float, so give a little wiggle room here to assume 0
+        if (settings.speed < 0.1f) {
+            Stroker.stopMotion();
+        } else if (Stroker.getState() == READY) {
+            Stroker.startPattern();
+        }
+
+        if (isChangeSignificant(lastSetting.speed, settings.speed)) {
+            // ||            wasLastSpeedCommandFromBLE()
 
             Stroker.setSpeed(settings.speed, true);
             lastSetting.speed = settings.speed;
@@ -128,6 +130,9 @@ static void startStrokeEngineTask(void *pvParameters) {
                     break;
                 case StrokePatterns::Insist:
                     Stroker.setPattern(new Insist("Insist"), false);
+                    break;
+                case StrokePatterns::SensualDistance:
+                    Stroker.setPattern(new SensualDistance("Sensual based on distance"), false);
                     break;
                 default:
                     break;
