@@ -5,7 +5,6 @@
 #include "Strings.h"
 #include "ossm/Events.h"
 #include "ossm/state/state.h"
-#include "components/HeaderBar.h"
 #include "services/wm.h"
 
 namespace sml = boost::sml;

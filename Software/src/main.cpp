@@ -1,6 +1,5 @@
 #include "Arduino.h"
 #include "OneButton.h"
-#include "components/HeaderBar.h"
 #include "esp_log.h"
 #include "ossm/Events.h"
 #include "ossm/OSSM.h"
@@ -48,9 +47,6 @@ void __attribute__((weak)) setup() {
     initBoard();
 
     ESP_LOGD("MAIN", "Starting OSSM");
-
-    // Initialize header bar task (Modified only LED )
-    initHeaderBar();
 
     // Create OSSM instance for backward compatibility (BLE command handling)
     ossm = new OSSM();

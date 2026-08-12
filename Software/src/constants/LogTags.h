@@ -7,7 +7,7 @@ static const char* STATE_MACHINE_TAG = "StateLogger";
 
 static const char* UPDATE_TAG = "Update";
 
-static const char* HEADERBAR_TAG = "HeaderBar";
+static const char* LED_TAG = "LED";
 
 static const char* NIMBLE_TAG = "NIMBLE";
 

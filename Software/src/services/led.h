@@ -67,4 +67,9 @@ bool isHomingActive();
 void updateLEDForMachineStatus();
 void showHomingBreathing();  // Breathing deep purple
 
+[[noreturn]] void ledTask(void* pvParameters);
+void initLED();
+
+extern TaskHandle_t ledTaskHandle;
+
 #endif // OSSM_SOFTWARE_LED_H

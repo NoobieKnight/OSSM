@@ -6,6 +6,9 @@
 #include "esp_log.h"
 #include "esp_wifi.h"
 
+#include "services/communication/nimble.h"
+
+
 WiFiManager wm;
 Preferences wifiPrefs;
 
@@ -88,7 +91,7 @@ bool connectWiFi() {
 
 String getWiFiStatus() {
     JsonDocument doc;
-    
+
     bool connected = (WiFi.status() == WL_CONNECTED);
     doc["connected"] = connected;
 
@@ -113,3 +116,40 @@ String getWiFiStatus() {
     serializeJson(doc, output);
     return output;
 }
+
+WifiState getWifiState() {
+    wl_status_t wifiStatus = WiFiClass::status();
+
+    switch (wifiStatus) {
+        case WL_CONNECTED:
+            return WifiState::CONNECTED;
+        case WL_IDLE_STATUS:
+            return WifiState::CONNECTING;
+        case WL_NO_SSID_AVAIL:
+        case WL_CONNECT_FAILED:
+        case WL_DISCONNECTED:
+        default:
+            return WifiState::DISCONNECTED;
+    }
+}
+
+BleState getBleState() {
+    if (pServer == nullptr) {
+        return BleState::DISCONNECTED;
+    }
+
+    if (pServer->getAdvertising() && pServer->getConnectedCount() == 0) {
+        return BleState::ADVERTISING;
+    }
+
+    if (pServer->getConnectedCount() > 0) {
+        return BleState::CONNECTED;
+    }
+
+    if (pServer->getAdvertising()) {
+        return BleState::CONNECTING;
+    }
+
+    return BleState::DISCONNECTED;
+}
+

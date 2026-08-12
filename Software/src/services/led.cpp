@@ -1,24 +1,14 @@
 #include "led.h"
+#include "wm.h"
 
 #include <esp_log.h>
+#include "constants/LogTags.h"
 
-#include "components/HeaderBar.h"
 
+TaskHandle_t ledTaskHandle = nullptr;
 CRGB leds[NUM_LEDS];
 static auto TAG = "LED";
 
-void initLED() {
-    ESP_LOGI(TAG, "Initializing RGB LED on pin %d...", Pins::Display::ledPin);
-
-    FastLED.addLeds<LED_TYPE, Pins::Display::ledPin, COLOR_ORDER>(leds,
-                                                                  NUM_LEDS);
-    FastLED.setBrightness(128);  // Set to 50% brightness by default
-
-    // Turn off LED initially
-    setLEDOff();
-
-    ESP_LOGI(TAG, "RGB LED initialization complete.");
-}
 
 void setLEDColor(CRGB color) {
     leds[0] = color;
@@ -113,7 +103,7 @@ void setLEDStatusConnecting() {
 }
 
 // BLE status indication functions
-static BleStatus lastBLEStatus = BleStatus::DISCONNECTED;
+static BleState lastBLEStatus = BleState::DISCONNECTED;
 static unsigned long bleStatusChangeTime = 0;
 static unsigned long rainbowStartTime = 0;
 static bool rainbowActive = false;
@@ -137,7 +127,7 @@ static const unsigned long ADVERTISING_TIMEOUT =
     30000;  // 30 seconds in milliseconds
 
 void updateLEDForBLEStatus() {
-    BleStatus currentStatus = getBleStatus();
+    BleState currentStatus = getBleState();
     unsigned long currentTime = millis();
 
     // Check if BLE status changed
@@ -153,7 +143,7 @@ void updateLEDForBLEStatus() {
         ESP_LOGI(TAG, "BLE status changed to: %d", (int)currentStatus);
 
         switch (currentStatus) {
-            case BleStatus::ADVERTISING:
+            case BleState::ADVERTISING:
                 // Rainbow will be handled in the continuous loop
                 rainbowActive = true;
                 rainbowStartTime = currentTime;
@@ -161,14 +151,13 @@ void updateLEDForBLEStatus() {
                     currentTime;            // Track when advertising started
                 advertisingDimmed = false;  // Reset dimmed flag
                 break;
-            case BleStatus::CONNECTED:
+            case BleState::CONNECTED:
                 // Rainbow will be handled in the continuous loop
                 rainbowActive = true;
                 rainbowStartTime = currentTime;
                 advertisingDimmed = false;  // Reset advertising flags
                 break;
-            case BleStatus::DISCONNECTED:
-                showBLEDisconnected();
+            case BleState::DISCONNECTED:
                 advertisingDimmed = false;  // Reset advertising flags
                 break;
             default:
@@ -178,7 +167,7 @@ void updateLEDForBLEStatus() {
 
     // Handle ongoing effects based on current status
     switch (currentStatus) {
-        case BleStatus::ADVERTISING:
+        case BleState::ADVERTISING:
             if (rainbowActive) {
                 showBLERainbow(1000);
                 if (millis() - rainbowStartTime >= 1000) {
@@ -204,7 +193,7 @@ void updateLEDForBLEStatus() {
             }
             break;
 
-        case BleStatus::CONNECTED:
+        case BleState::CONNECTED:
             if (rainbowActive) {
                 showBLERainbow(1000);
                 if (millis() - rainbowStartTime >= 1000) {
@@ -223,8 +212,8 @@ void updateLEDForBLEStatus() {
             }
             break;
 
-        case BleStatus::DISCONNECTED:
-            // LED should be off
+        case BleState::DISCONNECTED:
+            showBLEDisconnected();
             break;
 
         default:
@@ -451,3 +440,46 @@ void showHomingBreathing() {
         setLEDColor(color);
     }
 }
+
+[[noreturn]] void ledTask(void* pvParameters) {
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+    ESP_LOGI(LED_TAG, "LED task started");
+
+
+    while (true) {
+
+        updateLEDForMachineStatus();
+
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+}
+
+void initLED() {
+    ESP_LOGI(TAG, "Initializing RGB LED on pin %d...", Pins::Display::ledPin);
+
+    FastLED.addLeds<LED_TYPE, Pins::Display::ledPin, COLOR_ORDER>(leds,
+                                                                  NUM_LEDS);
+    FastLED.setBrightness(128);  // Set to 50% brightness by default
+
+    // Turn off LED initially
+    setLEDOff();
+
+    ESP_LOGI(TAG, "RGB LED initialization complete.");
+    ESP_LOGI(LED_TAG, "Initializing LED task");
+
+    BaseType_t result =
+        xTaskCreatePinnedToCore(ledTask, "led",
+                                4 * configMINIMAL_STACK_SIZE,
+                                nullptr,
+                                tskIDLE_PRIORITY + 1,
+                                &ledTaskHandle,
+                                0);
+
+    if (result != pdPASS) {
+        ESP_LOGE(LED_TAG, "Failed to create LED task");
+    } else {
+        ESP_LOGI(LED_TAG, "LED task created successfully");
+    }
+}
+

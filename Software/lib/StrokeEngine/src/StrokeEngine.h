@@ -239,26 +239,6 @@ class StrokeEngine {
 
         /**************************************************************************/
         /*!
-          @brief  Enable the servo/stepper and do the homing procedure. Drives towards
-          the endstop with HOMING_SPEED. Function is non-blocking and backed by a task.
-          Optionally a callback can be given to receive feedback if homing succeeded
-          going in state READY. If homing switch is not found after traveling
-          MAX_TRAVEL it times out, disables the servo and goes into UNDEFINED.
-          @param endstop Pointer to a endstopProperties struct defining all relevant
-                        properties like pin, pinmode, homing direction & signal
-                        polarity.
-          @param speed  Speed in mm/s used for finding the homing switch.
-                        Defaults to 5.0 mm/s
-          @param callBackHoming Callback function is called after homing is done.
-                        Function parametere holds a bool containing the success (TRUE)
-                        or failure (FALSE) of homing.
-        */
-        /**************************************************************************/
-        void enableAndHome(endstopProperties *endstop, float speed = 5.0);
-        void enableAndHome(endstopProperties *endstop, void(*callBackHoming)(bool), float speed = 5.0);
-
-        /**************************************************************************/
-        /*!
           @brief  If no homing switch is present homing can be done manually. Push
           the endeffector all the way in and call thisIsHome(). This enables the
           the servo and sets the position to -KEEPOUT_BOUNDARY
@@ -413,8 +393,6 @@ class StrokeEngine {
         float _sensation;
         bool _applyUpdate = false;
         void _recalcTimeOfStroke();
-        static void _homingProcedureImpl(void* _this) { static_cast<StrokeEngine*>(_this)->_homingProcedure(); }
-        void _homingProcedure();
         static void _strokingImpl(void* _this) { static_cast<StrokeEngine*>(_this)->_stroking(); }
         void _stroking();
         static void _streamingImpl(void* _this) { static_cast<StrokeEngine*>(_this)->_streaming(); }
