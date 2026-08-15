@@ -1,4 +1,6 @@
 #include "queue.h"
 
 std::queue<String> messageQueue = {};
-std::queue<PositionTime> targetQueue = {};
+
+QueueHandle_t rawQueue = xQueueCreate(20, sizeof(PositionTime));
+QueueHandle_t motionQueue = xQueueCreate(20, sizeof(MotionCommand));

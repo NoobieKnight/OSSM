@@ -1,7 +1,10 @@
 #include "streaming.h"
 
+#include <cstdint>
 #include <queue>
 #include <chrono>
+#include "Arduino.h"
+#include "freertos/projdefs.h"
 #include "streaming_logic.h"
 #include "constants/Config.h"
 #include "ossm/state/calibration.h"
@@ -14,141 +17,202 @@
 #include "services/stepper.h"
 #include "services/tasks.h"
 
+const int minTimeForMovement = 5; // Minimum time to allow start of movment
+
 namespace sml = boost::sml;
 using namespace sml;
 
 namespace streaming {
 
-static void startStreamingTask(void *pvParameters) {
-    // Own the shared stepper config at mode entry (see simple_penetration.cpp:
-    // StrokeEngine leaves the shared DIR polarity inverted and the counter in
-    // its own frame; this mode's targets are native-frame absolutes).
-    stepperTranslateFrame(StepperFrame::Native);
-    stepper->setDirectionPin(Pins::Driver::motorDirectionPin, false);
-    stepper->enableOutputs();
+static void startQueueHandlingTask(void *pvParameters) {
+    // This funtion handles the queue of streaming commands
 
+    // Is the state machine in the correct state?
     auto isInCorrectState = []() {
         return stateMachine->is("streaming"_s) ||
                stateMachine->is("streaming.active"_s);
     };
 
-    auto best = std::chrono::steady_clock::now();
-    PositionTime lastPositionTime;
+    PositionTime cmd;
+    PositionTime lastCmd = {0, 0, std::chrono::steady_clock::now()};
+    MotionCommand motionCmd;
+    MotionCommand lastMotionCmd = {0, 0, std::chrono::steady_clock::now(),0};
 
     // Reset the queue to clear any existing commands
-    targetQueue = {};
-
-    // Motion state
-    int16_t currentPosition = 0;
-    int16_t targetPosition = 0;
-
-    uint16_t maxSpeed = Config::Driver::maxSpeedMmPerSecond * (1_mm);
-    uint32_t maxAccel = Config::Driver::maxAcceleration * (1_mm);
-
-    // Set initial max speed and acceleration
-    stepper->setSpeedInHz(maxSpeed);
-    stepper->setAcceleration(maxAccel);
+    xQueueReset(rawQueue);
 
     while (isInCorrectState()) {
-        uint16_t currentBuffer = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - best).count();
-        // Wait for new command from BLE
-        if (targetQueue.empty()){
-            vTaskDelay(1);
-            continue;
-        }
-        // Get next move
-        PositionTime targetPositionTime = targetQueue.front();
-        //Wait for previous command to finish if it isn't moving in the same direction.
-        int16_t distance = targetPositionTime.position - lastPositionTime.position;
-        targetPositionTime.direction = distance/abs(distance);
-        bool sameDirection = lastPositionTime.direction == targetPositionTime.direction;
-        if (!sameDirection && stepper->isRunning()){
-            vTaskDelay(1);
-            continue;
-        }
-        targetQueue.pop();
+        // Wait until new command in queue
+        if (xQueueReceive(rawQueue, &cmd, pdMS_TO_TICKS(100)) == pdPASS) {
+            // Get current clock
+            auto now = std::chrono::steady_clock::now(); // Current clock
+            int32_t age_ms = 0; // Age of the command
 
-        float timeSeconds = targetPositionTime.inTime / 1000.0f;
+            if (USE_LATENCY_COMPENSATION) {
+                // Calculate time diffrence between when command was received to now
+                age_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - cmd.setTime).count();
 
-        // settime is when the message was received. If we trust the source we can reduce perceived lag by creating a buffer.
-        if (USE_LATENCY_COMPENSATION){
-            int16_t mincomp =  min(int(settings.buffer * 2),int(lastPositionTime.inTime));
-            int16_t offset = mincomp - currentBuffer;
-            int16_t lag = std::chrono::duration_cast<std::chrono::milliseconds>(targetPositionTime.setTime - best).count();
-            if (lag < 0 || lag > mincomp * 10){
-                best = targetPositionTime.setTime;
-                lag = 0;
-                offset = 0;
+                // Sanitycheck
+                if (age_ms < 0 || age_ms > 1000) {
+                    age_ms = 0;
+                }
+
+            } else {
+                age_ms = 0;
             }
-            best += std::chrono::milliseconds(targetPositionTime.inTime);
-            ESP_LOGD("Streaming", "Lagency Compensation - Lag: %d, Buffer: %d/%d", lag, currentBuffer, mincomp);
-            if (offset < 0){
-                // Shorten time up to 1/4 of the total time.
-                offset = max(int16_t(targetPositionTime.inTime/-4), offset);
+
+            // Make sure last commands finishMove is in the future
+            if (lastMotionCmd.finishMove < now) {
+                lastMotionCmd.finishMove = now - std::chrono::milliseconds(age_ms);
+                lastMotionCmd.age_ms = 0;
             }
-            timeSeconds += offset/1000.0f;
-        } else {
-            best = std::chrono::steady_clock::now();
+
+            // Push the motion command
+            motionCmd.position = cmd.position;
+            motionCmd.duration = cmd.inTime;
+            motionCmd.finishMove = lastMotionCmd.finishMove + std::chrono::milliseconds( motionCmd.duration );
+            motionCmd.age_ms = age_ms;
+
+            // Save command to next loop
+            lastCmd = cmd;
+            lastMotionCmd = motionCmd;
+
+            xQueueSend(motionQueue, &motionCmd, portMAX_DELAY);
         }
-        lastPositionTime = targetPositionTime;
-        //Grab the minimal value between depth and stroke, use as max stroke length.
-        int32_t maxStroke = streaming_logic::calculateMaxStroke(
-            settings.stroke, settings.depth,
-            calibration.measuredStrokeSteps);
-        //Set 100% at max depth and constrain speeds based on user inputs.
-        int32_t depth = streaming_logic::calculateDepthOffset(
-            calibration.measuredStrokeSteps, maxStroke, settings.depth);
-        uint32_t speedLimit = maxSpeed * (settings.speed/100.0);
-        uint32_t accelLimit = maxAccel * (settings.sensation/100.0);
-        // skip movement if speeds are 0
-        if (speedLimit > 0 && accelLimit > 0){
-            targetPosition = streaming_logic::scaleStreamPosition(
-                targetPositionTime.position, maxStroke, depth);
-            currentPosition = stepper->getCurrentPosition();
+    }
+
+    vTaskDelete(nullptr);
+}
+
+static void startStreamingTask(void *pvParameters) {
+    // Own the shared stepper config at mode entry (see simple_penetration.cpp:
+    stepper->setDirectionPin(Pins::Driver::motorDirectionPin, false);
+    stepper->enableOutputs();
+
+    // Is the state machine in the correct state?
+    auto isInCorrectState = []() {
+        return stateMachine->is("streaming"_s) ||
+               stateMachine->is("streaming.active"_s);
+    };
+
+    auto now = std::chrono::steady_clock::now();
+    MotionCommand cmd;
+    MotionCommand lastCmd = {0, 0, std::chrono::steady_clock::now(),0};
+
+    // Reset the queue to clear any existing commands
+    xQueueReset(motionQueue);
+
+    // Motion state
+    int32_t targetPosition = 0; // Target position in steps
+    double distance = 0.0f; // Target position in steps
+    double movementTime = 0.0f; // How long sould the movement take (s)
+
+    uint32_t maxConfigSpeed = Config::Driver::maxSpeedMmPerSecond * (1_mm);
+    uint32_t maxConfigAccel = Config::Driver::maxAcceleration * (1_mm);
+
+    // Set initial max speed and acceleration
+    stepper->setSpeedInHz(maxConfigSpeed);
+    stepper->setAcceleration(maxConfigAccel);
+
+    while (isInCorrectState()) {
+        // Wait until new command in queue
+        if (xQueueReceive(motionQueue, &cmd, pdMS_TO_TICKS(100)) == pdPASS) {
+
+            // Make sure timing on the first move is correct
+            if (!stepper->isRunning() || lastCmd.finishMove < now) {
+                lastCmd.finishMove = cmd.finishMove - std::chrono::milliseconds(cmd.duration);
+            }
+
+            // Read settings
+            uint32_t maxPosition = streaming_logic::scaleIntPercent( calibration.measuredStrokeSteps,
+                settings.depth ); // Max position in steps
+            uint32_t strokeLength = min(streaming_logic::scaleIntPercent( calibration.measuredStrokeSteps,
+                settings.stroke), maxPosition); // Stroke length in steps
+            uint32_t minPosition = maxPosition - strokeLength; // Min position in steps
+            uint32_t speedLimit = streaming_logic::scaleIntPercent( maxConfigSpeed, settings.speed ); // Max speed (steps/s)
+            double accelSetpoint = streaming_logic::scaleIntPercent( maxConfigAccel, settings.sensation ); // Setpoint acceleration (steps/s^2) Allowed to go higher
+
+            // Skip movement if speed is 0
+            if (speedLimit <= 0) {
+                ESP_LOGI("Streaming", "Speed set to 0, skipping moves");
+                continue;
+            }
+
+            // Calculate the target position
+            targetPosition = minPosition + streaming_logic::scaleIntPercent( strokeLength, cmd.position);
+
             // Calculate distance to travel (in steps)
-            distance = abs(targetPosition - currentPosition);
-            if (timeSeconds > 0.01f && distance > 1.0f) {
-                //Find max distance possible to travel given available time, max acceleration, and max speed.
-                int32_t maxDistance = accelLimit * pow(timeSeconds/2,2);
-                //This technically optimistic... the speed limit assumes perfect acceleration
-                maxDistance = min(maxDistance, int32_t(speedLimit * timeSeconds));
-                //if the distance asked for is greater then the maximum possible, reduce the ask.
-                //Is it what they asked for? No. Will they notice at these speeds? Hopefully not.
-                if (distance > maxDistance){
-                    ESP_LOGI("Streaming","Too fast, shortening distance: %.0f -> %.0f",distance,maxDistance);
-                    distance = maxDistance - (2_mm);
-                    if (targetPosition > currentPosition) {
-                        targetPosition = currentPosition + distance;
-                    } else {
-                        targetPosition = currentPosition - distance;
-                    }
-                }
-                // start by calculating a triangular motion with unlimited
-                uint32_t requiredSpeed = (2 * distance) / timeSeconds;
-                // constrain it to legal maximums
-                requiredSpeed = constrain(requiredSpeed, 100.0f, speedLimit);
-                // calculate what proportion of the move needs to be at max speed, if any.
-                float vt = requiredSpeed * timeSeconds;
-                float proportion = max(-((2 * distance - 2 * vt)/vt),0.01f);
-                // calculate acceleration such that triangle or trapezoid is created depending on needs
-                uint32_t requiredAccel = requiredSpeed / (timeSeconds * proportion / 2);
-                // constrain just in case, but reducing the distance should mostly preven this.
-                requiredAccel = constrain(requiredAccel, 100.0f, accelLimit);
-                if (stepper->isRunning()){
-                    requiredAccel = max(stepper->getAcceleration(),requiredAccel);
-                }
-                stepper->setAcceleration(requiredAccel);
-                stepper->setSpeedInHz(requiredSpeed);
-                stepper->moveTo(targetPosition, false);
+            distance = streaming_logic::scaleIntPercent(strokeLength,abs(int32_t(cmd.position) - int32_t(lastCmd.position)));
 
-                ESP_LOGI("Streaming", "P(%d): %d -> %d = %d, T: %.3f, S: %d, A: %d, Q: %d",
-                        targetPositionTime.position, currentPosition, targetPosition, distance,
-                        timeSeconds, requiredSpeed, requiredAccel, targetQueue.size());
+            // Are we too far behind?
+            now = std::chrono::steady_clock::now();
+            auto executeTime = max(now, lastCmd.finishMove);
+            auto calcTime = std::chrono::duration_cast<std::chrono::milliseconds>(cmd.finishMove - executeTime).count();
+            if (calcTime < minTimeForMovement){
+                ESP_LOGI("Streaming", "Behind in queue or time to complete move is too small");
+                continue;
+            } else if (distance < 5){
+                ESP_LOGI("Streaming", "Position too close to last position. Move will not execute");
+                continue;
             }
-        } else {
-            ESP_LOGI("Streaming", "Spped or accel too slow, skipping moves");
+
+            // How long sould the movement take (seconds)
+            movementTime = min(cmd.duration, uint16_t(calcTime)) / 1000.0f;
+
+            uint32_t requiredSpeed = 0; // Desired speed (steps/s)
+            uint32_t targetSpeed = 0;  // Target speed (steps/s, limited by user settings)
+            uint32_t requiredAcc = 0; // Desired acceleration (steps/s^2)
+            uint32_t targetAcc = 0; // Target acceleration (steps/s^2, limited by user settings)
+
+            // Is the movement possible with the set acceleration?
+            double discriminant = (accelSetpoint * movementTime) * (accelSetpoint * movementTime) - (4.0 * accelSetpoint * distance);
+            if (discriminant < 0.0) {
+
+                // Calculate desired speed and acceleration for the move, not using set acceleration
+                requiredSpeed = (1.5f * distance) / movementTime; // Desired speed (steps/s)
+                // Limit speed to the maximum allowed by the configuration and user settings
+                targetSpeed = min(requiredSpeed, speedLimit); // Target speed (steps/s, limited by user settings)
+
+                // Calculate desired speed and acceleration for the move
+                requiredAcc = (3.0f * targetSpeed * targetSpeed) / distance; // Desired acceleration (steps/s^2)
+                // Limit acceleration to the maximum allowed by the configuration and user settings
+                targetAcc = min(requiredAcc, maxConfigAccel); // Target acceleration (steps/s^2, limited by user settings)
+            } else {
+                // Calculate desired speed and acceleration for the move, with user set acceleration
+                targetSpeed = ((2.0 * accelSetpoint * distance) / ((accelSetpoint * movementTime) + std::sqrt(discriminant)));
+                targetAcc = min(uint32_t(accelSetpoint), maxConfigAccel); // Target acceleration (steps/s^2, limited by user settings)
+
+                requiredSpeed = targetSpeed;
+                requiredAcc = targetAcc;
+            }
+
+            // Have speed and acceleration been limited by the user settings?
+            if (targetSpeed != requiredSpeed && targetAcc != requiredAcc){
+                ESP_LOGI("Streaming","Target speed and acceleration limited by user settings. "
+                    "Speed: %d/%d, Acceleration: %d/%d", requiredSpeed, targetSpeed, requiredAcc, targetAcc);
+                continue;
+            }
+
+            // Wait until the precise moment this movement should be executed
+            bool nextMoveSameDir = getRampState(stepper).dir_up == (cmd.position < lastCmd.position);
+            while (isInCorrectState() && stepper->isRunning() && lastCmd.finishMove > now &&
+            (nextMoveSameDir && !(getRampState(stepper).decelerating && abs(stepper->getCurrentSpeedInUs(false)) < targetSpeed))){
+                now = std::chrono::steady_clock::now();
+                vTaskDelay(1);
+            }
+
+            // Move to target position
+            stepper->setAcceleration(targetAcc);
+            stepper->setSpeedInHz(targetSpeed);
+            stepper->moveTo(targetPosition, false);
+
+            ESP_LOGI("Streaming", "P(%d -> %d ): SameDir: %i - %d | %d, T: %.3f, S: %d, A: %d, QBLE: %d | QM: %d",
+                    lastCmd.position, cmd.position, nextMoveSameDir, targetPosition, distance, movementTime,
+                    targetSpeed, targetAcc, uxQueueMessagesWaiting(rawQueue), uxQueueMessagesWaiting(motionQueue));
+            // Save current position as last position
+            lastCmd = cmd;
+
         }
-        vTaskDelay(1);
     }
 
     vTaskDelete(nullptr);
@@ -159,6 +223,10 @@ void startStreaming() {
 
     xTaskCreatePinnedToCore(startStreamingTask, "startStreamingTask", stackSize,
                             nullptr, configMAX_PRIORITIES - 1, nullptr,
+                            Tasks::operationTaskCore);
+
+    xTaskCreatePinnedToCore(startQueueHandlingTask, "startQueueHandlingTask", stackSize,
+                            nullptr, configMAX_PRIORITIES - 2, nullptr,
                             Tasks::operationTaskCore);
 }
 

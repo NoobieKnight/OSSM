@@ -82,13 +82,16 @@ void OSSM::ble_click(String commandString) {
         case Commands::setPattern:
             settings.pattern = static_cast<StrokePatterns>(command.value % 9);
             break;
-        case Commands::streamPosition:
+        case Commands::streamPosition:{
             // Position (0-100)
-            targetQueue.push({
-                static_cast<uint8_t>(command.value),
-                static_cast<uint16_t>(command.time),
-                std::chrono::steady_clock::now()});
+            PositionTime addItem;
+            addItem.position = static_cast<uint8_t>(command.value);
+            addItem.inTime = static_cast<uint16_t>(command.time);
+            addItem.setTime = std::chrono::steady_clock::now();
+
+            xQueueSend(rawQueue, &addItem, portMAX_DELAY);
             break;
+        }
         case Commands::setWifi:
         case Commands::ignore:
             break;

@@ -34,7 +34,6 @@ struct OSSMStateMachine {
             "menu.idle"_s + buttonPress[(isOption(Menu::Streaming))] = "streaming"_s,
             "menu.idle"_s + buttonPress[(isOption(Menu::Pairing)) && isOnline] = "pairing"_s,
             "menu.idle"_s + buttonPress[(isOption(Menu::Pairing)) && !isOnline] = "pairing.wifi"_s,
-            "menu.idle"_s + buttonPress[(isOption(Menu::WiFiSetup))] = "wifi"_s,
             "menu.idle"_s + buttonPress[(isOption(Menu::Restart))] = "restart"_s,
 
             "strokeEngine"_s [isNotHomed] = "homing"_s,
@@ -66,11 +65,6 @@ struct OSSMStateMachine {
             // Exit
             "pairing.wifi.idle"_s + buttonPress = "menu"_s,
             "pairing.wifi.idle"_s + longPress = "menu"_s,
-
-            "wifi"_s = "wifi.idle"_s,
-            "wifi.idle"_s + done / stopWifiPortal = "menu"_s,
-            "wifi.idle"_s + buttonPress / stopWifiPortal = "menu"_s,
-            "wifi.idle"_s + longPress / resetWiFi = "restart"_s,
 
             "error"_s = "error.idle"_s,
             "error.idle"_s + buttonPress / restart = X,

@@ -11,7 +11,6 @@ void ossmEmergencyStop();
 void ossmSetHomed();
 void ossmSetNotHomed();
 void ossmCheckPairing();
-void ossmResetWiFi();
 void ossmRestart();
 
 namespace actions {
@@ -29,8 +28,6 @@ namespace actions {
     constexpr auto emergencyStop = []() { ossmEmergencyStop(); };
 
     constexpr auto stopWifiPortal = []() {};
-
-    constexpr auto resetWiFi = []() { ossmResetWiFi(); };
 
     constexpr auto checkPairing = []() { ossmCheckPairing(); };
 

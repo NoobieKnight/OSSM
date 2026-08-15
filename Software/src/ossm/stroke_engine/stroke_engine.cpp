@@ -25,7 +25,8 @@ static void startStrokeEngineTask(void *pvParameters) {
 
     machineGeometry strokingMachine = {
         .physicalTravel = abs(measuredStrokeMm),
-        .keepoutBoundary = 0.0};
+        // keepoutBoundary must match with stepperTranslateFrame in stepper.cpp
+        .keepoutBoundary = 0.0}; // KeepoutBoundary controlled outside of StrokeEngine
     SettingPercents lastSetting = settings;
 
     // Adopt the StrokeEngine origin only when entering right after a real
@@ -36,18 +37,6 @@ static void startStrokeEngineTask(void *pvParameters) {
     bool atHome = calibration.justHomed &&
                   (abs(stepper->getCurrentPosition()) < 2_mm);
     calibration.justHomed = false;
-
-    if (atHome) {
-        // thisIsHome() below (re-)defines the origin at -keepout: the counter
-        // is being re-established, not translated.
-        stepperFrame = StepperFrame::StrokeEngine;
-    } else {
-        // Cross-mode entry (e.g. home -> SimplePenetration -> go:menu ->
-        // here): the counter is still a native-frame value; translate it into
-        // the StrokeEngine frame exactly (no motion). Same-mode re-entry is a
-        // no-op (frame already StrokeEngine) and keeps the counter as-is.
-        stepperTranslateFrame(StepperFrame::StrokeEngine);
-    }
 
     Stroker.begin(&strokingMachine, &servoMotor, stepper);
     Stroker.thisIsHome(5.0f, atHome);

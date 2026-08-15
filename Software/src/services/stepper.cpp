@@ -5,19 +5,7 @@
 FastAccelStepperEngine stepperEngine = FastAccelStepperEngine();
 FastAccelStepper *stepper = nullptr;
 class StrokeEngine Stroker;
-StepperFrame stepperFrame = StepperFrame::Native;
 
-void stepperTranslateFrame(StepperFrame to) {
-    if (stepperFrame == to) return;
-    if (stepper == nullptr) return;
-    // Mirror map between the two frames. The keepout must match
-    // strokingMachine.keepoutBoundary (6 mm) in stroke_engine.cpp.
-    constexpr int32_t keepoutSteps =
-        static_cast<int32_t>(6.0f * Config::Driver::stepsPerMM);
-    stepper->setCurrentPosition(
-        -(stepper->getCurrentPosition() + keepoutSteps));
-    stepperFrame = to;
-}
 
 void initStepper() {
     stepperEngine.init();
@@ -34,3 +22,26 @@ void initStepper() {
     digitalWrite(Pins::Driver::motorEnablePin, LOW);
     delay(100);
 }
+
+// Get the current movment state of a stepper
+RampState getRampState(FastAccelStepper *inStepper) {
+    RampState stepperState;
+    uint8_t state = inStepper->rampState();
+
+    // Extract fields
+    uint8_t ramp = state & RAMP_STATE_MASK;
+    uint8_t direction = state & RAMP_DIRECTION_MASK;
+
+    // Ramp states
+    stepperState.idle = (ramp == RAMP_STATE_IDLE);
+    stepperState.accelerating = (ramp & RAMP_STATE_ACCELERATING_FLAG);
+    stepperState.decelerating = (ramp & RAMP_STATE_DECELERATING_FLAG);
+
+    // Direction
+    stepperState.dir_up = (direction == RAMP_DIRECTION_COUNT_UP);
+
+    return stepperState;
+
+}
+
+

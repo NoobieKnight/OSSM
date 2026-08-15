@@ -65,10 +65,6 @@ void ossmSetNotHomed() {
     calibration.isHomed = false;
 }
 
-void ossmResetWiFi() {
-    wm.resetSettings();
-}
-
 void ossmRestart() {
     ESP.restart();
 }

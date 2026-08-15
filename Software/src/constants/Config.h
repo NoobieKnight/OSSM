@@ -14,14 +14,14 @@ namespace Config {
     */
     namespace Driver {
         // Max speed of the device
-        constexpr float maxRPM = 1000.0f;
+        constexpr float maxRPM = 1500.0f;
         // Number of teeth the pulley that is attached to the servo/stepper shaft has.
         constexpr float pulleyToothCount = 30.0f;
         // Set to your belt pitch (Distance between two teeth on the belt) (E.g.
         // GT2 belt has 2mm tooth pitch)
         constexpr float beltPitchMm = 2.0f;
         // Top linear speed of the device.
-        constexpr float motorStepPerRevolution = 800.0f;
+        constexpr float motorStepPerRevolution = 3000.0f;
         // Top acceleration of the device in mm/s/s
         constexpr float maxAcceleration = 30000.0f;
         // Number of steps to move the arm 1mm
@@ -51,14 +51,14 @@ namespace Config {
         // belt attachments subtract the linear block holder length (75mm on
         // OSSM) Recommended to also subtract e.g. 20mm to keep the backstop
         // well away from the device.
-        constexpr float maxStrokeSteps = 340.0_mm;
+        constexpr float maxStrokeSteps = 310.0_mm;
 
         // If the stroke length is less than this value, then the stroke is
         // likely the result of a poor homing.
         constexpr float minStrokeLengthMm = 100.0_mm;
 
         // Applied offset after homing process. Defines limits
-        constexpr float homingOffsetMn = 20_mm;
+        constexpr float homingOffsetMn = 10_mm;
         // Speed when homing
         constexpr float homingSpeed = 10_mm;
         // Nbr of samples when doing sensorless Homing
@@ -77,6 +77,7 @@ namespace Config {
         // there is NO security other than knowing this name, make this unique
         // to avoid collisions with other users
         constexpr char *ossmId = nullptr;
+
     }
 
     /**
@@ -84,17 +85,7 @@ namespace Config {
 */
     namespace Advanced {
 
-        // After homingStart this is the physical buffer distance from the
-        // effective zero to the home switch This is to stop the home switch
-        // being smacked constantly
-        constexpr float strokeZeroOffsetMm = 6.0f;
-        // The minimum value of the pot in percent
-        // prevents noisy pots registering commands when turned down to zero by
-        // user
-        constexpr float commandDeadZonePercentage = 1.0f;
-        // affects acceleration in stepper trajectory (Aggressiveness of motion)
 
-        constexpr float accelerationScaling = 100.0f;
 
     }
 

@@ -101,7 +101,12 @@ class FTSCallbacks : public NimBLECharacteristicCallbacks {
                             static_cast<uint8_t>(value[2]);
 
             ESP_LOGI("NIMBLE", "FTS Command - Position: %d, Time: %d ms", position, time);
-            targetQueue.push({position, time, std::chrono::steady_clock::now()});
+            PositionTime addItem;
+            addItem.position = static_cast<uint8_t>(position);
+            addItem.inTime = static_cast<uint16_t>(time);
+            addItem.setTime = std::chrono::steady_clock::now();
+
+            xQueueSend(rawQueue, &addItem, portMAX_DELAY);
 
         } else {
             ESP_LOGW("NIMBLE", "FTS write - Invalid data length: %d bytes",
